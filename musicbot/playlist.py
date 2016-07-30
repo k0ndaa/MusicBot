@@ -81,8 +81,15 @@ class Playlist(EventEmitter):
             self.downloader.ytdl.prepare_filename(info),
             **meta
         )
-        self._add_entry(entry)
-        return entry, len(self.entries)
+
+        prepend = False
+        if('prepend' in meta):
+            prepend = meta['prepend']
+
+        self._add_entry(entry, prepend)
+
+        position = 1 if prepend else len(self.entries)
+        return entry, position
 
     async def import_from(self, playlist_url, **meta):
         """
@@ -218,8 +225,12 @@ class Playlist(EventEmitter):
 
         return gooditems
 
-    def _add_entry(self, entry):
-        self.entries.append(entry)
+    def _add_entry(self, entry, prepend = False):
+        if(prepend):
+            self.entries.appendleft(entry)
+        else:
+            self.entries.append(entry)
+
         self.emit('entry-added', playlist=self, entry=entry)
 
         if self.peek() is entry:

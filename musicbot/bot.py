@@ -852,6 +852,22 @@ class MusicBot(discord.Client):
         result from a youtube search is added to the queue.
         """
 
+        return await self._cmd_play(player, channel, author, permissions, leftover_args, song_url, False)
+
+    async def cmd_playnow(self, player, channel, author, permissions, leftover_args, song_url):
+        """
+        Usage:
+            {command_prefix}playnow song_link
+            {command_prefix}playnow text to search for
+
+        Plays song instead of adding it to playlist. If a link is not provided, the first
+        result from a youtube search is added to the queue.
+        Unlike `play` command does not works with playlists
+        """
+
+        return await self._cmd_play(player, channel, author, permissions, leftover_args, song_url, True)
+
+    async def _cmd_play(self, player, channel, author, permissions, leftover_args, song_url, prepend = False):
         song_url = song_url.strip('<>')
 
         if permissions.max_songs and player.playlist.count_for_user(author) >= permissions.max_songs:
@@ -1003,7 +1019,9 @@ class MusicBot(discord.Client):
                 )
 
             try:
-                entry, position = await player.playlist.add_entry(song_url, channel=channel, author=author)
+                entry, position = await player.playlist.add_entry(song_url, channel=channel, author=author, prepend=prepend)
+                if(prepend):
+                    player.skip()
 
             except exceptions.WrongEntryTypeError as e:
                 if e.use_url == song_url:
@@ -1018,7 +1036,10 @@ class MusicBot(discord.Client):
             reply_text = "Enqueued **%s** to be played. Position in queue: %s"
             btext = entry.title
 
-        if position == 1 and player.is_stopped:
+        if(prepend):
+            return
+
+        elif position == 1 and player.is_stopped:
             position = 'Up next!'
             reply_text %= (btext, position)
 
